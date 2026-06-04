@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="ArtSite.Api/ArtSite.Api.csproj" />
+  <Project Path="ArtSite.Client/ArtSite.Client.csproj" />
+  <Project Path="ArtSite.Shared/ArtSite.Shared.csproj" />
+</Solution>

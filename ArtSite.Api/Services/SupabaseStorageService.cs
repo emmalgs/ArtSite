@@ -1,4 +1,3 @@
-using ArtSite.Api.Configuration;
 using Microsoft.Extensions.Options;
 using Supabase;
 using SixLabors.ImageSharp;
@@ -14,7 +13,7 @@ public class SupabaseStorageService : IStorageService
   private readonly string _supabaseUrl;
   private const int MaxDimension = 2000;
 
-  public SupabaseStorageService(Client supabaseClient, IOptions<SupabaseOptions> options)
+  public SupabaseStorageService(Client supabaseClient, IOptions<Configuration.SupabaseOptions> options)
   {
     _supabaseClient = supabaseClient;
     _bucketName = options.Value.StorageBucket;

@@ -1,4 +1,3 @@
-using ArtSite.Api.Configuration;
 using ArtSite.Api.Data;
 using ArtSite.Api.Services;
 using Microsoft.EntityFrameworkCore;
@@ -7,7 +6,7 @@ using Supabase;
 var builder = WebApplication.CreateBuilder(args);
 
 // Configure Supabase options
-builder.Services.Configure<SupabaseOptions>(
+builder.Services.Configure<ArtSite.Api.Configuration.SupabaseOptions>(
     builder.Configuration.GetSection("Supabase"));
 
 // Database connection

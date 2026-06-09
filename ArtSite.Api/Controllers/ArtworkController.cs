@@ -25,7 +25,7 @@ public class ArtworkController : ControllerBase
   [HttpGet]
   public async Task<ActionResult<List<ArtworkDto>>> GetAll()
   {
-    var artworks = _artworkService.GetAllAsync();
+    var artworks = await _artworkService.GetAllAsync();
     return Ok(artworks);
   }
   [HttpGet("{id}")]

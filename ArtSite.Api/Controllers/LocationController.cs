@@ -1,8 +1,7 @@
 using ArtSite.Shared.DTOs;
-using ArtSite.Shared.Models;
 using ArtSite.Api.Services;
 using Microsoft.AspNetCore.Mvc;
-using ArtSite.Api.Data;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ArtSite.Api.Controllers;
 
@@ -36,6 +35,7 @@ public class LocationController : ControllerBase
   }
 
   [HttpPost]
+  [Authorize]
   public async Task<ActionResult<LocationDto>> Create([FromBody] LocationDto dto)
   {
     if (!ModelState.IsValid)
@@ -46,6 +46,7 @@ public class LocationController : ControllerBase
   }
 
   [HttpPut("{id}")]
+  [Authorize]
   public async Task<ActionResult<LocationDto>> Update(int id, [FromBody] LocationDto dto)
   {
     if (!ModelState.IsValid)
@@ -60,6 +61,7 @@ public class LocationController : ControllerBase
   }
 
   [HttpDelete("{id}")]
+  [Authorize]
   public async Task<IActionResult> Delete(int id)
   {
     var success = await _locationService.DeleteAsync(id);

@@ -4,6 +4,7 @@ using ArtSite.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 using ArtSite.Api.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ArtSite.Api.Controllers;
 
@@ -39,6 +40,7 @@ public class ArtworkController : ControllerBase
   }
 
   [HttpPost]
+  [Authorize]
   public async Task<ActionResult<ArtworkDetailDto>> Create(
     [FromBody] CreateArtworkDto dto)
   {
@@ -55,6 +57,7 @@ public class ArtworkController : ControllerBase
   }
 
   [HttpPost("{artworkId}/images")]
+  [Authorize]
   public async Task<ActionResult<ArtworkImageDto>> UploadImage(
     int artworkId,
     [FromForm] IFormFile image,
@@ -105,6 +108,7 @@ public class ArtworkController : ControllerBase
 
 
   [HttpDelete("{artworkId}/images/{imageId}")]
+  [Authorize]
   public async Task<IActionResult> DeleteImage(int artworkId, int imageId)
   {
     // Verify artwork exists
@@ -140,6 +144,7 @@ public class ArtworkController : ControllerBase
   }
 
   [HttpPut("{artworkId}/images/{imageId}/primary")]
+  [Authorize]
   public async Task<IActionResult> SetPrimaryImage(int artworkId, int imageId)
   {
     // Verify artwork exists
@@ -173,6 +178,7 @@ public class ArtworkController : ControllerBase
   }
 
   [HttpPut("{id}")]
+  [Authorize]
   public async Task<ActionResult<ArtworkDetailDto>> Update(
     int id,
     [FromBody] UpdateArtworkDto dto)
@@ -189,6 +195,7 @@ public class ArtworkController : ControllerBase
   }
 
   [HttpDelete("{id}")]
+  [Authorize]
   public async Task<IActionResult> Delete(int id)
   {
     // Get artwork with images before deleting

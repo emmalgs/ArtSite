@@ -1,8 +1,6 @@
 using Microsoft.Extensions.Options;
 using Supabase;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Webp;
-using SixLabors.ImageSharp.Processing;
+using SkiaSharp;
 
 namespace ArtSite.Api.Services;
 
@@ -22,23 +20,39 @@ public class SupabaseStorageService : IStorageService
 
   public async Task<string> UploadAsync(Stream fileStream, string fileName, string contentType)
   {
-    // Load and resize image using SixLabors.ImageSharp
-    using var image = await Image.LoadAsync(fileStream);
+    // Load image using SkiaSharp
+    using var inputStream = new SKManagedStream(fileStream);
+    using var original = SKBitmap.Decode(inputStream);
 
-    if (image.Width > MaxDimension || image.Height > MaxDimension)
+    if (original == null)
+      throw new InvalidOperationException("Failed to decode image");
+
+    // Calculate new dimensions maintaining aspect ratio
+    var (newWidth, newHeight) = CalculateResizeDimensions(original.Width, original.Height, MaxDimension);
+
+    // Resize if needed
+    SKBitmap resized;
+    if (newWidth != original.Width || newHeight != original.Height)
     {
-      image.Mutate(x => x.Resize(new ResizeOptions
-      {
-        Size = new Size(MaxDimension, MaxDimension),
-        Mode = ResizeMode.Max
-      }));
+      var imageInfo = new SKImageInfo(newWidth, newHeight);
+      resized = original.Resize(imageInfo, SKSamplingOptions.Default);
+    }
+    else
+    {
+      resized = original;
     }
 
     // Convert to WebP format
     var webpFileName = Path.ChangeExtension(fileName, ".webp");
     using var outputStream = new MemoryStream();
-    await image.SaveAsync(outputStream, new WebpEncoder { Quality = 85 });
+    using var image = SKImage.FromBitmap(resized);
+    using var data = image.Encode(SKEncodedImageFormat.Webp, 85);
+    data.SaveTo(outputStream);
     outputStream.Position = 0;
+
+    // Clean up resized bitmap if different from original
+    if (resized != original)
+      resized.Dispose();
 
     // Upload to Supabase Storage
     var bytes = outputStream.ToArray();
@@ -52,6 +66,19 @@ public class SupabaseStorageService : IStorageService
 
     // Return the public URL
     return $"{_supabaseUrl}/storage/v1/object/public/{_bucketName}/{webpFileName}";
+  }
+
+  private static (int width, int height) CalculateResizeDimensions(int originalWidth, int originalHeight, int maxDimension)
+  {
+    if (originalWidth <= maxDimension && originalHeight <= maxDimension)
+      return (originalWidth, originalHeight);
+
+    var ratio = (double)originalWidth / originalHeight;
+
+    if (originalWidth > originalHeight)
+      return (maxDimension, (int)(maxDimension / ratio));
+    else
+      return ((int)(maxDimension * ratio), maxDimension);
   }
 
   public async Task<string> GetImageUrlAsync(string fileName)

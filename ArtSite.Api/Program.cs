@@ -37,8 +37,10 @@ builder.Services.AddSingleton(provider =>
     return new Client(supabaseUrl, supabaseKey, options);
 });
 
-// Register storage service
+// Register services
 builder.Services.AddScoped<IStorageService, SupabaseStorageService>();
+builder.Services.AddScoped<IArtworkService, ArtworkService>();
+builder.Services.AddScoped<ILocationService, LocationService>();
 
 var app = builder.Build();
 

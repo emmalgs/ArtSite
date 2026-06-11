@@ -24,6 +24,7 @@ public class ArtworkService : IArtworkService
         Title = a.Title,
         Medium = a.Medium,
         Year = a.Year,
+        Price = a.Price,
         Available = a.Available,
         PrimaryImageUrl = a.ArtworkImages
           .Where(img => img.IsPrimary)
@@ -53,6 +54,7 @@ public class ArtworkService : IArtworkService
       Category = artwork.Category,
       Dimensions = artwork.Dimensions,
       Year = artwork.Year,
+      Price = artwork.Price,
       Available = artwork.Available,
       Location = location == null ? null : new LocationDto
       {
@@ -84,6 +86,7 @@ ArtworkImageDto
       Category = dto.Category,
       Dimensions = dto.Dimensions,
       Year = dto.Year,
+      Price = dto.Price,
       Available = dto.Available,
       LocationId = dto.LocationId
     };
@@ -106,6 +109,7 @@ ArtworkImageDto
     artwork.Category = dto.Category;
     artwork.Dimensions = dto.Dimensions;
     artwork.Year = dto.Year;
+    artwork.Price = dto.Price;
     artwork.Available = dto.Available;
     artwork.LocationId = dto.LocationId;
 

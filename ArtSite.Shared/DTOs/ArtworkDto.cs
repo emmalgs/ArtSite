@@ -6,6 +6,7 @@ public class ArtworkDto
   public string Title { get; set; } = string.Empty;
   public string? Medium { get; set; }
   public int Year { get; set; }
+  public decimal? Price { get; set; }
   public bool Available { get; set; }
-  public string? PrimaryImageUrl {get; set; }
+  public string? PrimaryImageUrl { get; set; }
 }

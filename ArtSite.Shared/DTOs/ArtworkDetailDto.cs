@@ -8,6 +8,7 @@ public class ArtworkDetailDto
   public string? Category { get; set; }
   public string? Dimensions { get; set; }
   public int Year { get; set; }
+  public decimal? Price { get; set; }
   public bool Available { get; set; }
   public LocationDto? Location { get; set; }
   public List<ArtworkImageDto>? Images { get; set; }

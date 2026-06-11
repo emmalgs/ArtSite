@@ -34,6 +34,9 @@ namespace ArtSite.Api.Data
         entity.Property(a => a.Dimensions)
           .HasMaxLength(100);
 
+        entity.Property(a => a.Price)
+          .HasPrecision(18, 2);
+
         // Configure relationship with Location
         entity.HasOne<Location>()
           .WithMany()
@@ -78,6 +81,12 @@ namespace ArtSite.Api.Data
           .HasMaxLength(20);
 
         entity.Property(l => l.City)
+          .HasMaxLength(100);
+
+        entity.Property(l => l.State)
+          .HasMaxLength(100);
+
+        entity.Property(l => l.Country)
           .HasMaxLength(100);
 
         entity.Property(l => l.CollectionType)

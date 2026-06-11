@@ -69,13 +69,14 @@ public class AuthService : IAuthService
       var isExpired = await _jSRuntime.InvokeAsync<bool>("authHelper.isTokenExpired");
       return !isExpired;
     }
-    catch
+    catch (Exception ex)
     {
+      Console.WriteLine($"IsAuthenticated error: {ex.Message}");
       return false;
     }
   }
 
-  public async Task<string?> GetToken()
+  public async Task<string?> GetTokenAsync()
   {
     try
     {

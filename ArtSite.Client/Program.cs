@@ -2,24 +2,17 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using ArtSite.Client;
 using ArtSite.Client.Services;
-using ArtSite.Client.Handlers;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-
-builder.Services.AddScoped<AuthHeaderHandler>();
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped(sp =>
+builder.Services.AddScoped(sp => new HttpClient
 {
-  var handler = sp.GetRequiredService<AuthHeaderHandler>();
-  handler.InnerHandler = new HttpClientHandler();
-
-  var httpClient = new HttpClient(handler)
-  {
-    BaseAddress = new Uri(builder.HostEnvironment.BaseAddress
-  };
+    BaseAddress = new Uri("http://localhost:5023")
 });
+
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IApiService, ApiService>();
 
 await builder.Build().RunAsync();

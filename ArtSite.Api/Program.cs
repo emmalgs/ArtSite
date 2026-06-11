@@ -21,6 +21,17 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddControllers();
 
+// Add CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowBlazorClient", policy =>
+    {
+        policy.WithOrigins("http://localhost:5190")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 builder.Services.AddDbContext<AppDbContext>(
     options => options.UseNpgsql(connectionString)
 );
@@ -80,6 +91,8 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+app.UseCors("AllowBlazorClient");
+
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -89,8 +102,6 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+app.MapControllers();
 
 app.Run();

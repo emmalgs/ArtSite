@@ -1,4 +1,36 @@
 @page "/admin"
+@inject ArtSite.Client.Services.IAuthService AuthService
+@inject NavigationManager Navigation
 
+<h1>YOU ARE THE BOSS HERE</h1>
+<button @onclick="HandleLogout">Sign outta here, boss</button>
 @* Add Location *@
 <button>Locations</button>
+
+@code {
+  private bool isChecking = true;
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (firstRender)
+    {
+      var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+
+      if (!isAuthenticated)
+      {
+        Navigation.NavigateTo("/login", true);
+      }
+      else
+      {
+        isChecking = false;
+        StateHasChanged();
+      }
+    }
+  }
+
+  private async Task HandleLogout()
+  {
+    await AuthService.LogoutAsync();
+    Navigation.NavigateTo("/login");
+  }
+}

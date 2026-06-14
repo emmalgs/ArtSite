@@ -50,9 +50,17 @@
       <InputCheckbox @bind-Value="newArtwork.Available" style="margin-bottom: 10px;" />
     </div>
     <div>
-      <label>Location ID (optional):</label>
-      <InputNumber @bind-Value="newArtwork.LocationId" style="width: 100%; margin-bottom: 10px;" />
-      <small style="color: #666;">Leave as 0 if no location</small>
+      <label>Location (optional):</label>
+      <InputSelect @bind-Value="newArtwork.LocationId" style="width: 100%; margin-bottom: 10px;">
+        <option value="">Select location...</option>
+        @if (allLocations != null)
+        {
+          @foreach (var location in allLocations)
+          {
+            <option value="@location.LocationId">@location.Name - @location.City, @location.State</option>
+          }
+        }
+      </InputSelect>
     </div>
 
     @if (!string.IsNullOrEmpty(createMessage))
@@ -139,6 +147,19 @@ else
           <div>
             <label>Available:</label>
             <InputCheckbox @bind-Value="editingArtwork.Available" style="margin-bottom: 10px;" />
+          </div>
+          <div>
+            <label>Location (optional):</label>
+            <InputSelect @bind-Value="editingArtwork.LocationId" style="width: 100%; margin-bottom: 10px;">
+              <option value="">Select location...</option>
+              @if (allLocations != null)
+              {
+                @foreach (var location in allLocations)
+                {
+                  <option value="@location.LocationId">@location.Name - @location.City, @location.State</option>
+                }
+              }
+            </InputSelect>
           </div>
 
           @if (!string.IsNullOrEmpty(editMessage))
@@ -234,6 +255,7 @@ else
 
 @code {
   private List<ArtworkDto>? artworks;
+  private List<LocationDto>? allLocations;
   private CreateArtworkDto newArtwork = new();
   private bool isCreating = false;
   private bool isUploading = false;
@@ -281,6 +303,7 @@ else
       else
       {
         await LoadArtworks();
+        await LoadLocations();
         StateHasChanged();
       }
     }
@@ -296,6 +319,19 @@ else
     {
       Console.WriteLine($"Error loading artworks: {ex.Message}");
       artworks = new List<ArtworkDto>();
+    }
+  }
+
+  private async Task LoadLocations()
+  {
+    try
+    {
+      allLocations = await Http.GetFromJsonAsync<List<LocationDto>>("api/location");
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"Error loading locations: {ex.Message}");
+      allLocations = new List<LocationDto>();
     }
   }
 

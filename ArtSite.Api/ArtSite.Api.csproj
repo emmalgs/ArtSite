@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ArtSite.Shared\ArtSite.Shared.csproj" />
+    <ProjectReference Include="..\ArtSite.Client\ArtSite.Client.csproj" />
   </ItemGroup>
 
 </Project>

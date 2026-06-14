@@ -97,7 +97,12 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-app.UseHttpsRedirection();
+// Only use HTTPS redirection in development
+// Render handles HTTPS at the load balancer level
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseCors("AllowBlazorClient");
 

@@ -18,9 +18,14 @@
 
 <hr />
 
-<h2>Add New Artwork</h2>
-<div style="border: 1px solid #ccc; padding: 20px; margin-bottom: 20px;">
-  <EditForm Model="@newArtwork" OnValidSubmit="@HandleCreateArtwork">
+<!-- Two Column Layout -->
+<div style="display: grid; grid-template-columns: 1fr 400px; gap: 20px; align-items: start;">
+
+  <!-- Left Column: Add Artwork Form -->
+  <div>
+    <h2>Add New Artwork</h2>
+    <div style="border: 1px solid #ccc; padding: 20px; margin-bottom: 20px;">
+      <EditForm Model="@newArtwork" OnValidSubmit="@HandleCreateArtwork">
     <div>
       <label>Title:</label>
       <InputText @bind-Value="newArtwork.Title" style="width: 100%; margin-bottom: 10px;" />
@@ -96,6 +101,78 @@
       }
     </div>
   }
+    </div>
+  </div>
+
+  <!-- Right Column: Side Panel -->
+  <div style="position: sticky; top: 20px;">
+
+    <!-- Locations List -->
+    <div style="margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h3 style="margin: 0;">Locations</h3>
+        <button @onclick="OpenLocationsModal" style="background: #0d6efd; color: white; border: none; padding: 5px 10px; cursor: pointer; font-size: 0.85rem;">+ Add</button>
+      </div>
+      <div style="border: 1px solid #ddd; background: #f9f9f9; padding: 10px; max-height: 300px; overflow-y: auto;">
+        @if (allLocations == null)
+        {
+          <p style="margin: 0; color: #666; font-size: 0.9rem;">Loading...</p>
+        }
+        else if (allLocations.Count == 0)
+        {
+          <p style="margin: 0; color: #666; font-size: 0.9rem;">No locations yet.</p>
+        }
+        else
+        {
+          @foreach (var location in allLocations)
+          {
+            <div style="padding: 8px; margin-bottom: 8px; background: white; border: 1px solid #ddd; border-radius: 4px;">
+              <div style="font-weight: 500; font-size: 0.9rem;">@location.Name</div>
+              <div style="font-size: 0.8rem; color: #666;">@location.City, @location.State</div>
+            </div>
+          }
+        }
+      </div>
+    </div>
+
+    <!-- Shows/Events List -->
+    <div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h3 style="margin: 0;">Shows/Events</h3>
+        <button @onclick="OpenShowsModal" style="background: #198754; color: white; border: none; padding: 5px 10px; cursor: pointer; font-size: 0.85rem;">+ Add</button>
+      </div>
+      <div style="border: 1px solid #ddd; background: #f9f9f9; padding: 10px; max-height: 400px; overflow-y: auto;">
+        @if (allShows == null)
+        {
+          <p style="margin: 0; color: #666; font-size: 0.9rem;">Loading...</p>
+        }
+        else if (allShows.Count == 0)
+        {
+          <p style="margin: 0; color: #666; font-size: 0.9rem;">No shows yet.</p>
+        }
+        else
+        {
+          @foreach (var show in allShows.OrderByDescending(s => s.ShowId))
+          {
+            <div style="padding: 8px; margin-bottom: 8px; background: white; border: 1px solid #ddd; border-radius: 4px;">
+              <div style="font-weight: 500; font-size: 0.9rem;">@show.Title</div>
+              <div style="font-size: 0.8rem; color: #666;">@show.Dates</div>
+              @if (!string.IsNullOrEmpty(show.ShowType))
+              {
+                <div style="font-size: 0.75rem; color: #999; margin-top: 2px;">@show.ShowType</div>
+              }
+              @if (!string.IsNullOrEmpty(show.LocationName))
+              {
+                <div style="font-size: 0.75rem; color: #999;">📍 @show.LocationName</div>
+              }
+            </div>
+          }
+        }
+      </div>
+    </div>
+
+  </div>
+
 </div>
 
 <hr />
@@ -256,6 +333,7 @@ else
 @code {
   private List<ArtworkDto>? artworks;
   private List<LocationDto>? allLocations;
+  private List<ShowDto>? allShows;
   private CreateArtworkDto newArtwork = new();
   private bool isCreating = false;
   private bool isUploading = false;
@@ -304,6 +382,7 @@ else
       {
         await LoadArtworks();
         await LoadLocations();
+        await LoadShows();
         StateHasChanged();
       }
     }
@@ -332,6 +411,19 @@ else
     {
       Console.WriteLine($"Error loading locations: {ex.Message}");
       allLocations = new List<LocationDto>();
+    }
+  }
+
+  private async Task LoadShows()
+  {
+    try
+    {
+      allShows = await Http.GetFromJsonAsync<List<ShowDto>>("api/show");
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"Error loading shows: {ex.Message}");
+      allShows = new List<ShowDto>();
     }
   }
 
@@ -596,9 +688,10 @@ else
     isLocationsModalOpen = true;
   }
 
-  private void CloseLocationsModal()
+  private async Task CloseLocationsModal()
   {
     isLocationsModalOpen = false;
+    await LoadLocations();
   }
 
   private void OpenShowsModal()
@@ -606,9 +699,10 @@ else
     isShowsModalOpen = true;
   }
 
-  private void CloseShowsModal()
+  private async Task CloseShowsModal()
   {
     isShowsModalOpen = false;
+    await LoadShows();
   }
 
   private async Task HandleLogout()

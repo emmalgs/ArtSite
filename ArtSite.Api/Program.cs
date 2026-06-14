@@ -11,6 +11,10 @@ using SupabaseOptions = Supabase.SupabaseOptions;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure port from environment (for Railway/Render)
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+
 // Configure Supabase options
 builder.Services.Configure<ArtSite.Api.Configuration.SupabaseOptions>(
     builder.Configuration.GetSection("Supabase"));
@@ -21,12 +25,12 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddControllers();
 
-// Add CORS
+// Add CORS - Allow any origin for now (you can restrict this later to your deployment URL)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowBlazorClient", policy =>
     {
-        policy.WithOrigins("http://localhost:5190")
+        policy.AllowAnyOrigin()
               .AllowAnyHeader()
               .AllowAnyMethod();
     });

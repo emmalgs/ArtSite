@@ -42,11 +42,11 @@ public class SupabaseStorageService : IStorageService
       resized = original;
     }
 
-    // Convert to WebP format
-    var webpFileName = Path.ChangeExtension(fileName, ".webp");
+    // Convert to JPEG format
+    var jpegFileName = Path.ChangeExtension(fileName, ".jpg");
     using var outputStream = new MemoryStream();
     using var image = SKImage.FromBitmap(resized);
-    using var data = image.Encode(SKEncodedImageFormat.Webp, 85);
+    using var data = image.Encode(SKEncodedImageFormat.Jpeg, 85);
     data.SaveTo(outputStream);
     outputStream.Position = 0;
 
@@ -58,14 +58,14 @@ public class SupabaseStorageService : IStorageService
     var bytes = outputStream.ToArray();
     await _supabaseClient.Storage
       .From(_bucketName)
-      .Upload(bytes, webpFileName, new Supabase.Storage.FileOptions
+      .Upload(bytes, jpegFileName, new Supabase.Storage.FileOptions
       {
-        ContentType = "image/webp",
+        ContentType = "image/jpeg",
         Upsert = true
       });
 
     // Return the public URL
-    return $"{_supabaseUrl}/storage/v1/object/public/{_bucketName}/{webpFileName}";
+    return $"{_supabaseUrl}/storage/v1/object/public/{_bucketName}/{jpegFileName}";
   }
 
   private static (int width, int height) CalculateResizeDimensions(int originalWidth, int originalHeight, int maxDimension)

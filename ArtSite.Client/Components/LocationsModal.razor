@@ -1,0 +1,389 @@
+@using ArtSite.Shared.DTOs
+@inject HttpClient Http
+@inject IApiService ApiService
+
+@if (IsOpen)
+{
+  <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;" @onclick="Close">
+    <div style="background: white; padding: 20px; border-radius: 8px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;" @onclick:stopPropagation="true">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0;">Manage Locations</h2>
+        <button @onclick="Close" style="padding: 5px 10px; cursor: pointer;">✕</button>
+      </div>
+
+      <!-- Add New Location -->
+      <div style="border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; background: #f9f9f9;">
+        <h3 style="margin-top: 0;">Add New Location</h3>
+        <EditForm Model="@newLocation" OnValidSubmit="@HandleCreateLocation">
+          <div style="margin-bottom: 10px;">
+            <label>Name:</label>
+            <InputText @bind-Value="newLocation.Name" style="width: 100%; padding: 5px;" />
+          </div>
+          <div style="margin-bottom: 10px;">
+            <label>City:</label>
+            <InputText @bind-Value="newLocation.City" style="width: 100%; padding: 5px;" />
+          </div>
+          <div style="margin-bottom: 10px;">
+            <label>State:</label>
+            <InputText @bind-Value="newLocation.State" style="width: 100%; padding: 5px;" />
+          </div>
+          <div style="margin-bottom: 10px;">
+            <label>Country:</label>
+            <InputText @bind-Value="newLocation.Country" style="width: 100%; padding: 5px;" />
+          </div>
+          <div style="margin-bottom: 10px;">
+            <label>Collection Type:</label>
+            <InputText @bind-Value="newLocation.CollectionType" style="width: 100%; padding: 5px;" />
+          </div>
+          <div style="margin-bottom: 10px;">
+            <label>URL:</label>
+            <InputText @bind-Value="newLocation.Url" style="width: 100%; padding: 5px;" />
+          </div>
+          <div style="margin-bottom: 10px;">
+            <label>Email:</label>
+            <InputText @bind-Value="newLocation.Email" style="width: 100%; padding: 5px;" />
+          </div>
+          <div style="margin-bottom: 10px;">
+            <label>Phone:</label>
+            <InputText @bind-Value="newLocation.Phone" style="width: 100%; padding: 5px;" />
+          </div>
+
+          @if (!string.IsNullOrEmpty(createMessage))
+          {
+            <div style="color: @(createSuccess ? "green" : "red"); margin: 10px 0;">
+              @createMessage
+            </div>
+          }
+
+          <button type="submit" disabled="@isCreating" style="padding: 8px 16px; cursor: pointer;">
+            @(isCreating ? "Creating..." : "Add Location")
+          </button>
+        </EditForm>
+      </div>
+
+      <!-- Locations List -->
+      <h3>Existing Locations</h3>
+      @if (locations == null)
+      {
+        <p>Loading...</p>
+      }
+      else if (locations.Count == 0)
+      {
+        <p>No locations yet.</p>
+      }
+      else
+      {
+        @foreach (var location in locations)
+        {
+          <div style="border: 1px solid #ddd; margin-bottom: 10px;">
+            <!-- Accordion Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #f5f5f5; cursor: pointer;" @onclick="@(() => ToggleAccordion(location.LocationId))">
+              <div>
+                <strong>@location.Name</strong>
+                <div style="font-size: 0.9rem; color: #666;">@location.City, @location.State</div>
+              </div>
+              <div style="display: flex; gap: 5px;">
+                <button @onclick="@(() => StartEdit(location.LocationId))" @onclick:stopPropagation="true" style="padding: 5px 10px; cursor: pointer;">Edit</button>
+                <button @onclick="@(() => StartDelete(location.LocationId))" @onclick:stopPropagation="true" style="padding: 5px 10px; background: #dc3545; color: white; border: none; cursor: pointer;">Delete</button>
+                <span>@(expandedLocationId == location.LocationId ? "▲" : "▼")</span>
+              </div>
+            </div>
+
+            <!-- Accordion Content -->
+            @if (expandedLocationId == location.LocationId)
+            {
+              <div style="padding: 15px; background: white;">
+                @if (editingLocationId == location.LocationId)
+                {
+                  <!-- Edit Form -->
+                  <EditForm Model="@editingLocation" OnValidSubmit="@HandleUpdateLocation">
+                    <div style="margin-bottom: 10px;">
+                      <label>Name:</label>
+                      <InputText @bind-Value="editingLocation.Name" style="width: 100%; padding: 5px;" />
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                      <label>City:</label>
+                      <InputText @bind-Value="editingLocation.City" style="width: 100%; padding: 5px;" />
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                      <label>State:</label>
+                      <InputText @bind-Value="editingLocation.State" style="width: 100%; padding: 5px;" />
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                      <label>Country:</label>
+                      <InputText @bind-Value="editingLocation.Country" style="width: 100%; padding: 5px;" />
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                      <label>Collection Type:</label>
+                      <InputText @bind-Value="editingLocation.CollectionType" style="width: 100%; padding: 5px;" />
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                      <label>URL:</label>
+                      <InputText @bind-Value="editingLocation.Url" style="width: 100%; padding: 5px;" />
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                      <label>Email:</label>
+                      <InputText @bind-Value="editingLocation.Email" style="width: 100%; padding: 5px;" />
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                      <label>Phone:</label>
+                      <InputText @bind-Value="editingLocation.Phone" style="width: 100%; padding: 5px;" />
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(editMessage))
+                    {
+                      <div style="color: @(editSuccess ? "green" : "red"); margin: 10px 0;">
+                        @editMessage
+                      </div>
+                    }
+
+                    <button type="submit" disabled="@isEditing" style="padding: 8px 16px; cursor: pointer;">
+                      @(isEditing ? "Saving..." : "Save Changes")
+                    </button>
+                    <button type="button" @onclick="CancelEdit" style="padding: 8px 16px; margin-left: 10px; cursor: pointer;">Cancel</button>
+                  </EditForm>
+                }
+                else
+                {
+                  <!-- Display Info -->
+                  <p style="margin: 5px 0;"><strong>City:</strong> @location.City</p>
+                  <p style="margin: 5px 0;"><strong>State:</strong> @location.State</p>
+                  <p style="margin: 5px 0;"><strong>Country:</strong> @location.Country</p>
+                  @if (!string.IsNullOrEmpty(location.CollectionType))
+                  {
+                    <p style="margin: 5px 0;"><strong>Collection Type:</strong> @location.CollectionType</p>
+                  }
+                  @if (!string.IsNullOrEmpty(location.Url))
+                  {
+                    <p style="margin: 5px 0;"><strong>URL:</strong> <a href="@location.Url" target="_blank">@location.Url</a></p>
+                  }
+                  @if (!string.IsNullOrEmpty(location.Email))
+                  {
+                    <p style="margin: 5px 0;"><strong>Email:</strong> @location.Email</p>
+                  }
+                  @if (!string.IsNullOrEmpty(location.Phone))
+                  {
+                    <p style="margin: 5px 0;"><strong>Phone:</strong> @location.Phone</p>
+                  }
+                }
+              </div>
+            }
+          </div>
+        }
+      }
+    </div>
+  </div>
+}
+
+@if (deletingLocationId.HasValue)
+{
+  <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1001;">
+    <div style="background: white; padding: 20px; border-radius: 8px; max-width: 400px; width: 90%;">
+      <h3>Confirm Delete</h3>
+      <p>Are you sure you want to delete this location?</p>
+      <div style="display: flex; gap: 10px; margin-top: 20px;">
+        <button @onclick="ConfirmDelete" disabled="@isDeleting" style="padding: 10px 20px; background: #dc3545; color: white; border: none; cursor: pointer;">
+          @(isDeleting ? "Deleting..." : "Yes, Delete")
+        </button>
+        <button @onclick="CancelDelete" disabled="@isDeleting" style="padding: 10px 20px; background: #6c757d; color: white; border: none; cursor: pointer;">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+@code {
+  [Parameter] public bool IsOpen { get; set; }
+  [Parameter] public EventCallback OnClose { get; set; }
+
+  private List<LocationDto>? locations;
+  private LocationDto newLocation = new();
+  private LocationDto editingLocation = new();
+  private int? expandedLocationId;
+  private int? editingLocationId;
+  private int? deletingLocationId;
+
+  private bool isCreating = false;
+  private bool isEditing = false;
+  private bool isDeleting = false;
+  private string? createMessage;
+  private bool createSuccess = false;
+  private string? editMessage;
+  private bool editSuccess = false;
+
+  protected override async Task OnParametersSetAsync()
+  {
+    if (IsOpen && locations == null)
+    {
+      await LoadLocations();
+    }
+  }
+
+  private async Task LoadLocations()
+  {
+    try
+    {
+      locations = await Http.GetFromJsonAsync<List<LocationDto>>("api/location");
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"Error loading locations: {ex.Message}");
+      locations = new List<LocationDto>();
+    }
+  }
+
+  private void ToggleAccordion(int locationId)
+  {
+    if (expandedLocationId == locationId)
+      expandedLocationId = null;
+    else
+      expandedLocationId = locationId;
+  }
+
+  private async Task HandleCreateLocation()
+  {
+    isCreating = true;
+    createMessage = null;
+
+    try
+    {
+      var httpClient = await ApiService.GetAuthenticatedHttpClientAsync();
+      var response = await httpClient.PostAsJsonAsync("api/location", newLocation);
+
+      if (response.IsSuccessStatusCode)
+      {
+        createMessage = "Location created successfully!";
+        createSuccess = true;
+        newLocation = new LocationDto();
+        await LoadLocations();
+      }
+      else
+      {
+        var error = await response.Content.ReadAsStringAsync();
+        createMessage = $"Failed to create: {error}";
+        createSuccess = false;
+      }
+    }
+    catch (Exception ex)
+    {
+      createMessage = $"Error: {ex.Message}";
+      createSuccess = false;
+    }
+
+    isCreating = false;
+  }
+
+  private void StartEdit(int locationId)
+  {
+    var location = locations?.FirstOrDefault(l => l.LocationId == locationId);
+    if (location != null)
+    {
+      editingLocationId = locationId;
+      editingLocation = new LocationDto
+      {
+        LocationId = location.LocationId,
+        Name = location.Name,
+        City = location.City,
+        State = location.State,
+        Country = location.Country,
+        CollectionType = location.CollectionType,
+        Url = location.Url,
+        Email = location.Email,
+        Phone = location.Phone
+      };
+      editMessage = null;
+      expandedLocationId = locationId;
+    }
+  }
+
+  private void CancelEdit()
+  {
+    editingLocationId = null;
+    editingLocation = new LocationDto();
+    editMessage = null;
+  }
+
+  private async Task HandleUpdateLocation()
+  {
+    if (!editingLocationId.HasValue) return;
+
+    isEditing = true;
+    editMessage = null;
+
+    try
+    {
+      var httpClient = await ApiService.GetAuthenticatedHttpClientAsync();
+      var response = await httpClient.PutAsJsonAsync($"api/location/{editingLocationId}", editingLocation);
+
+      if (response.IsSuccessStatusCode)
+      {
+        editMessage = "Location updated successfully!";
+        editSuccess = true;
+        await LoadLocations();
+
+        await Task.Delay(1000);
+        CancelEdit();
+      }
+      else
+      {
+        var error = await response.Content.ReadAsStringAsync();
+        editMessage = $"Failed to update: {error}";
+        editSuccess = false;
+      }
+    }
+    catch (Exception ex)
+    {
+      editMessage = $"Error: {ex.Message}";
+      editSuccess = false;
+    }
+
+    isEditing = false;
+  }
+
+  private void StartDelete(int locationId)
+  {
+    deletingLocationId = locationId;
+  }
+
+  private void CancelDelete()
+  {
+    deletingLocationId = null;
+  }
+
+  private async Task ConfirmDelete()
+  {
+    if (!deletingLocationId.HasValue) return;
+
+    isDeleting = true;
+
+    try
+    {
+      var httpClient = await ApiService.GetAuthenticatedHttpClientAsync();
+      var response = await httpClient.DeleteAsync($"api/location/{deletingLocationId}");
+
+      if (response.IsSuccessStatusCode)
+      {
+        await LoadLocations();
+        deletingLocationId = null;
+        expandedLocationId = null;
+      }
+      else
+      {
+        var error = await response.Content.ReadAsStringAsync();
+        Console.WriteLine($"Delete failed: {error}");
+      }
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"Delete exception: {ex.Message}");
+    }
+
+    isDeleting = false;
+  }
+
+  private async Task Close()
+  {
+    await OnClose.InvokeAsync();
+  }
+}

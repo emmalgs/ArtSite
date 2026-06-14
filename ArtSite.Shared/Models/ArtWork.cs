@@ -11,6 +11,6 @@ public class ArtWork
   public int Year { get; set; }
   public decimal? Price { get; set; }
   public bool Available { get; set; }
-  public int LocationId { get; set; }
+  public int? LocationId { get; set; }
   public List<ArtworkImage> ArtworkImages { get; set; } = [];
 }

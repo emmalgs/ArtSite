@@ -2,6 +2,7 @@
 using ArtSite.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -10,9 +11,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ArtSite.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260612191138_MakeLocationIdNullable")]
+    partial class MakeLocationIdNullable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -141,98 +144,6 @@ namespace ArtSite.Api.Migrations
                     b.ToTable("Locations");
                 });
 
-            modelBuilder.Entity("ArtSite.Shared.Models.Show", b =>
-                {
-                    b.Property<int>("ShowId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ShowId"));
-
-                    b.Property<string>("ArtistStatement")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Dates")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<int?>("LocationId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("ShowInfo")
-                        .HasColumnType("text");
-
-                    b.Property<string>("ShowType")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
-
-                    b.HasKey("ShowId");
-
-                    b.HasIndex("LocationId");
-
-                    b.ToTable("Shows");
-                });
-
-            modelBuilder.Entity("ArtSite.Shared.Models.ShowArtwork", b =>
-                {
-                    b.Property<int>("ShowArtworkId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ShowArtworkId"));
-
-                    b.Property<int>("ArtWorkId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ShowId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("ShowArtworkId");
-
-                    b.HasIndex("ArtWorkId");
-
-                    b.HasIndex("ShowId", "ArtWorkId")
-                        .IsUnique();
-
-                    b.ToTable("ShowArtworks");
-                });
-
-            modelBuilder.Entity("ArtSite.Shared.Models.ShowImage", b =>
-                {
-                    b.Property<int>("ShowImageId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ShowImageId"));
-
-                    b.Property<string>("AltText")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("BucketPath")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("ImageType")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<int>("ShowId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("ShowImageId");
-
-                    b.HasIndex("ShowId");
-
-                    b.ToTable("ShowImages");
-                });
-
             modelBuilder.Entity("ArtSite.Shared.Models.ArtWork", b =>
                 {
                     b.HasOne("ArtSite.Shared.Models.Location", null)
@@ -252,56 +163,9 @@ namespace ArtSite.Api.Migrations
                     b.Navigation("ArtWork");
                 });
 
-            modelBuilder.Entity("ArtSite.Shared.Models.Show", b =>
-                {
-                    b.HasOne("ArtSite.Shared.Models.Location", "Location")
-                        .WithMany()
-                        .HasForeignKey("LocationId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Location");
-                });
-
-            modelBuilder.Entity("ArtSite.Shared.Models.ShowArtwork", b =>
-                {
-                    b.HasOne("ArtSite.Shared.Models.ArtWork", "ArtWork")
-                        .WithMany()
-                        .HasForeignKey("ArtWorkId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ArtSite.Shared.Models.Show", "Show")
-                        .WithMany("ShowArtworks")
-                        .HasForeignKey("ShowId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ArtWork");
-
-                    b.Navigation("Show");
-                });
-
-            modelBuilder.Entity("ArtSite.Shared.Models.ShowImage", b =>
-                {
-                    b.HasOne("ArtSite.Shared.Models.Show", "Show")
-                        .WithMany("ShowImages")
-                        .HasForeignKey("ShowId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Show");
-                });
-
             modelBuilder.Entity("ArtSite.Shared.Models.ArtWork", b =>
                 {
                     b.Navigation("ArtworkImages");
-                });
-
-            modelBuilder.Entity("ArtSite.Shared.Models.Show", b =>
-                {
-                    b.Navigation("ShowArtworks");
-
-                    b.Navigation("ShowImages");
                 });
 #pragma warning restore 612, 618
         }

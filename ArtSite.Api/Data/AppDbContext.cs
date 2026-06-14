@@ -11,6 +11,9 @@ namespace ArtSite.Api.Data
     public DbSet<ArtWork> ArtWorks { get; set; }
     public DbSet<ArtworkImage> ArtworkImages { get; set; }
     public DbSet<Location> Locations { get; set; }
+    public DbSet<Show> Shows { get; set; }
+    public DbSet<ShowArtwork> ShowArtworks { get; set; }
+    public DbSet<ShowImage> ShowImages { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -90,6 +93,76 @@ namespace ArtSite.Api.Data
           .HasMaxLength(100);
 
         entity.Property(l => l.CollectionType)
+          .HasMaxLength(100);
+      });
+
+      // Configure Show entity
+      modelBuilder.Entity<Show>(entity =>
+      {
+        entity.HasKey(s => s.ShowId);
+
+        entity.Property(s => s.Title)
+          .IsRequired()
+          .HasMaxLength(300);
+
+        entity.Property(s => s.Dates)
+          .HasMaxLength(200);
+
+        entity.Property(s => s.ShowType)
+          .HasMaxLength(100);
+
+        // Configure relationship with Location
+        entity.HasOne(s => s.Location)
+          .WithMany()
+          .HasForeignKey(s => s.LocationId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+        // Configure relationship with ShowArtworks
+        entity.HasMany(s => s.ShowArtworks)
+          .WithOne(sa => sa.Show)
+          .HasForeignKey(sa => sa.ShowId)
+          .OnDelete(DeleteBehavior.Cascade);
+
+        // Configure relationship with ShowImages
+        entity.HasMany(s => s.ShowImages)
+          .WithOne(si => si.Show)
+          .HasForeignKey(si => si.ShowId)
+          .OnDelete(DeleteBehavior.Cascade);
+      });
+
+      // Configure ShowArtwork entity (junction table)
+      modelBuilder.Entity<ShowArtwork>(entity =>
+      {
+        entity.HasKey(sa => sa.ShowArtworkId);
+
+        entity.HasOne(sa => sa.Show)
+          .WithMany(s => s.ShowArtworks)
+          .HasForeignKey(sa => sa.ShowId)
+          .OnDelete(DeleteBehavior.Cascade);
+
+        entity.HasOne(sa => sa.ArtWork)
+          .WithMany()
+          .HasForeignKey(sa => sa.ArtWorkId)
+          .OnDelete(DeleteBehavior.Cascade);
+
+        // Ensure no duplicate artwork in the same show
+        entity.HasIndex(sa => new { sa.ShowId, sa.ArtWorkId })
+          .IsUnique();
+      });
+
+      // Configure ShowImage entity
+      modelBuilder.Entity<ShowImage>(entity =>
+      {
+        entity.HasKey(si => si.ShowImageId);
+
+        entity.Property(si => si.BucketPath)
+          .IsRequired()
+          .HasMaxLength(500);
+
+        entity.Property(si => si.AltText)
+          .HasMaxLength(200);
+
+        entity.Property(si => si.ImageType)
           .HasMaxLength(100);
       });
     }

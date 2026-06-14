@@ -63,6 +63,7 @@ builder.Services.AddScoped<IStorageService, SupabaseStorageService>();
 builder.Services.AddScoped<IArtworkService, ArtworkService>();
 builder.Services.AddScoped<ILocationService, LocationService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IShowService, ShowService>();
 
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt Key is missing");
 
@@ -91,16 +92,14 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+app.UseHttpsRedirection();
+
 app.UseCors("AllowBlazorClient");
+
+app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
-
-app.UseHttpsRedirection();
-
-app.UseStaticFiles();
-
-app.UseRouting();
 
 app.MapControllers();
 

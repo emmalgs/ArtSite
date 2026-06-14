@@ -1,0 +1,717 @@
+@using ArtSite.Shared.DTOs
+@inject HttpClient Http
+@inject IApiService ApiService
+
+@if (IsOpen)
+{
+  <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;" @onclick="Close">
+    <div style="background: white; padding: 20px; border-radius: 8px; max-width: 800px; width: 90%; max-height: 80vh; overflow-y: auto;" @onclick:stopPropagation="true">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0;">Manage Shows</h2>
+        <button @onclick="Close" style="padding: 5px 10px; cursor: pointer;">✕</button>
+      </div>
+
+      <!-- Add New Show -->
+      <div style="border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; background: #f9f9f9;">
+        <h3 style="margin-top: 0;">Add New Show</h3>
+        <EditForm Model="@newShow" OnValidSubmit="@HandleCreateShow">
+          <div style="margin-bottom: 10px;">
+            <label>Title:</label>
+            <InputText @bind-Value="newShow.Title" style="width: 100%; padding: 5px;" />
+          </div>
+          <div style="margin-bottom: 10px;">
+            <label>Dates (e.g., June 19 - July 20, 2026):</label>
+            <InputText @bind-Value="newShow.Dates" style="width: 100%; padding: 5px;" />
+          </div>
+          <div style="margin-bottom: 10px;">
+            <label>Show Type:</label>
+            <InputSelect @bind-Value="newShow.ShowType" style="width: 100%; padding: 5px;">
+              <option value="">Select type...</option>
+              <option value="Solo">Solo</option>
+              <option value="Two-Person">Two-Person</option>
+              <option value="Group">Group</option>
+              <option value="Public Event">Public Event</option>
+            </InputSelect>
+          </div>
+          <div style="margin-bottom: 10px;">
+            <label>Location (optional):</label>
+            <InputSelect @bind-Value="newShow.LocationId" style="width: 100%; padding: 5px;">
+              <option value="">Select location...</option>
+              @if (allLocations != null)
+              {
+                @foreach (var location in allLocations)
+                {
+                  <option value="@location.LocationId">@location.Name - @location.City, @location.State</option>
+                }
+              }
+            </InputSelect>
+          </div>
+          <div style="margin-bottom: 10px;">
+            <label>Show Info:</label>
+            <InputTextArea @bind-Value="newShow.ShowInfo" style="width: 100%; padding: 5px; min-height: 80px;" />
+          </div>
+          <div style="margin-bottom: 10px;">
+            <label>Artist Statement:</label>
+            <InputTextArea @bind-Value="newShow.ArtistStatement" style="width: 100%; padding: 5px; min-height: 80px;" />
+          </div>
+          <div style="margin-bottom: 10px;">
+            <label>Artworks (select multiple):</label>
+            <select multiple @onchange="HandleNewShowArtworkSelection" style="width: 100%; padding: 5px; min-height: 100px;">
+              @if (allArtworks != null)
+              {
+                @foreach (var artwork in allArtworks)
+                {
+                  <option value="@artwork.ArtWorkId">@artwork.Title (@artwork.Year)</option>
+                }
+              }
+            </select>
+            <small style="color: #666;">Hold Ctrl/Cmd to select multiple artworks</small>
+          </div>
+
+          @if (!string.IsNullOrEmpty(createMessage))
+          {
+            <div style="color: @(createSuccess ? "green" : "red"); margin: 10px 0;">
+              @createMessage
+            </div>
+          }
+
+          <button type="submit" disabled="@isCreating" style="padding: 8px 16px; cursor: pointer;">
+            @(isCreating ? "Creating..." : "Add Show")
+          </button>
+        </EditForm>
+      </div>
+
+      <!-- Shows List -->
+      <h3>Existing Shows</h3>
+      @if (shows == null)
+      {
+        <p>Loading...</p>
+      }
+      else if (shows.Count == 0)
+      {
+        <p>No shows yet.</p>
+      }
+      else
+      {
+        @foreach (var show in shows)
+        {
+          <div style="border: 1px solid #ddd; margin-bottom: 10px;">
+            <!-- Accordion Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #f5f5f5; cursor: pointer;" @onclick="@(() => ToggleAccordion(show.ShowId))">
+              <div>
+                <strong>@show.Title</strong>
+                <div style="font-size: 0.9rem; color: #666;">@show.Dates @(show.ShowType != null ? $"({show.ShowType})" : "")</div>
+              </div>
+              <div style="display: flex; gap: 5px;">
+                <button @onclick="@(() => StartEdit(show.ShowId))" @onclick:stopPropagation="true" style="padding: 5px 10px; cursor: pointer;">Edit</button>
+                <button @onclick="@(() => StartDelete(show.ShowId))" @onclick:stopPropagation="true" style="padding: 5px 10px; background: #dc3545; color: white; border: none; cursor: pointer;">Delete</button>
+                <span>@(expandedShowId == show.ShowId ? "▲" : "▼")</span>
+              </div>
+            </div>
+
+            <!-- Accordion Content -->
+            @if (expandedShowId == show.ShowId)
+            {
+              <div style="padding: 15px; background: white;">
+                @if (editingShowId == show.ShowId)
+                {
+                  <!-- Edit Form -->
+                  <EditForm Model="@editingShow" OnValidSubmit="@HandleUpdateShow">
+                    <div style="margin-bottom: 10px;">
+                      <label>Title:</label>
+                      <InputText @bind-Value="editingShow.Title" style="width: 100%; padding: 5px;" />
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                      <label>Dates:</label>
+                      <InputText @bind-Value="editingShow.Dates" style="width: 100%; padding: 5px;" />
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                      <label>Show Type:</label>
+                      <InputSelect @bind-Value="editingShow.ShowType" style="width: 100%; padding: 5px;">
+                        <option value="">Select type...</option>
+                        <option value="Solo">Solo</option>
+                        <option value="Two-Person">Two-Person</option>
+                        <option value="Group">Group</option>
+                        <option value="Public Event">Public Event</option>
+                      </InputSelect>
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                      <label>Location (optional):</label>
+                      <InputSelect @bind-Value="editingShow.LocationId" style="width: 100%; padding: 5px;">
+                        <option value="">Select location...</option>
+                        @if (allLocations != null)
+                        {
+                          @foreach (var location in allLocations)
+                          {
+                            <option value="@location.LocationId">@location.Name - @location.City, @location.State</option>
+                          }
+                        }
+                      </InputSelect>
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                      <label>Show Info:</label>
+                      <InputTextArea @bind-Value="editingShow.ShowInfo" style="width: 100%; padding: 5px; min-height: 80px;" />
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                      <label>Artist Statement:</label>
+                      <InputTextArea @bind-Value="editingShow.ArtistStatement" style="width: 100%; padding: 5px; min-height: 80px;" />
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                      <label>Artworks (select multiple):</label>
+                      <select multiple @onchange="HandleEditShowArtworkSelection" style="width: 100%; padding: 5px; min-height: 100px;">
+                        @if (allArtworks != null)
+                        {
+                          @foreach (var artwork in allArtworks)
+                          {
+                            var isSelected = editingShowArtworkIds.Contains(artwork.ArtWorkId);
+                            <option value="@artwork.ArtWorkId" selected="@isSelected">@artwork.Title (@artwork.Year)</option>
+                          }
+                        }
+                      </select>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(editMessage))
+                    {
+                      <div style="color: @(editSuccess ? "green" : "red"); margin: 10px 0;">
+                        @editMessage
+                      </div>
+                    }
+
+                    <button type="submit" disabled="@isEditing" style="padding: 8px 16px; cursor: pointer;">
+                      @(isEditing ? "Saving..." : "Save Changes")
+                    </button>
+                    <button type="button" @onclick="CancelEdit" style="padding: 8px 16px; margin-left: 10px; cursor: pointer;">Cancel</button>
+                  </EditForm>
+                }
+                else
+                {
+                  <!-- Display Info -->
+                  var detailShow = GetShowDetail(show.ShowId);
+                  @if (detailShow != null)
+                  {
+                    <p style="margin: 5px 0;"><strong>Dates:</strong> @detailShow.Dates</p>
+                    @if (!string.IsNullOrEmpty(detailShow.ShowType))
+                    {
+                      <p style="margin: 5px 0;"><strong>Type:</strong> @detailShow.ShowType</p>
+                    }
+                    @if (detailShow.Location != null)
+                    {
+                      <p style="margin: 5px 0;"><strong>Location:</strong> @detailShow.Location.Name, @detailShow.Location.City</p>
+                    }
+                    @if (!string.IsNullOrEmpty(detailShow.ShowInfo))
+                    {
+                      <p style="margin: 5px 0;"><strong>Show Info:</strong> @detailShow.ShowInfo</p>
+                    }
+                    @if (!string.IsNullOrEmpty(detailShow.ArtistStatement))
+                    {
+                      <p style="margin: 5px 0;"><strong>Artist Statement:</strong> @detailShow.ArtistStatement</p>
+                    }
+                    @if (detailShow.Artworks != null && detailShow.Artworks.Any())
+                    {
+                      <div style="margin: 10px 0;">
+                        <strong>Artworks in Show:</strong>
+                        <ul style="margin: 5px 0; padding-left: 20px;">
+                          @foreach (var artwork in detailShow.Artworks)
+                          {
+                            <li>@artwork.Title (@artwork.Year)</li>
+                          }
+                        </ul>
+                      </div>
+                    }
+
+                    <!-- Show Images Section -->
+                    <div style="margin-top: 20px; border-top: 1px solid #ddd; padding-top: 15px;">
+                      <h4>Show Images</h4>
+
+                      <!-- Upload Image Form -->
+                      <div style="background: #f9f9f9; padding: 10px; margin-bottom: 10px;">
+                        <InputFile OnChange="@((e) => HandleShowImageSelected(e, show.ShowId))" accept="image/*" />
+                        <div style="margin-top: 5px;">
+                          <label style="font-size: 0.9rem;">Alt Text (optional):</label>
+                          <input type="text" @bind="newImageAltText" style="width: 100%; padding: 3px;" placeholder="Description of image" />
+                        </div>
+                        <div style="margin-top: 5px;">
+                          <label style="font-size: 0.9rem;">Image Type:</label>
+                          <select @bind="newImageType" style="width: 100%; padding: 3px;">
+                            <option value="">Select type...</option>
+                            <option value="Postcard">Postcard</option>
+                            <option value="Installation">Installation Photo</option>
+                            <option value="Event">Event Photo</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(imageUploadMessage))
+                        {
+                          <div style="color: @(imageUploadSuccess ? "green" : "red"); margin: 5px 0; font-size: 0.9rem;">
+                            @imageUploadMessage
+                          </div>
+                        }
+
+                        @if (selectedShowImage != null && selectedShowImageForShowId == show.ShowId)
+                        {
+                          <button @onclick="HandleUploadShowImage" disabled="@isUploadingImage" style="margin-top: 5px; padding: 5px 10px; cursor: pointer;">
+                            @(isUploadingImage ? "Uploading..." : "Upload Image")
+                          </button>
+                        }
+                      </div>
+
+                      <!-- Display existing images -->
+                      @if (detailShow.Images != null && detailShow.Images.Any())
+                      {
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px;">
+                          @foreach (var image in detailShow.Images)
+                          {
+                            <div style="border: 1px solid #ddd; padding: 5px;">
+                              <img src="@image.ImageUrl" alt="@image.AltText" style="width: 100%; height: 100px; object-fit: cover;" />
+                              <div style="font-size: 0.8rem; margin-top: 5px;">
+                                @if (!string.IsNullOrEmpty(image.ImageType))
+                                {
+                                  <div><strong>@image.ImageType</strong></div>
+                                }
+                                @if (!string.IsNullOrEmpty(image.AltText))
+                                {
+                                  <div>@image.AltText</div>
+                                }
+                              </div>
+                              <button @onclick="@(() => DeleteShowImage(show.ShowId, image.ShowImageId))" style="width: 100%; margin-top: 5px; padding: 3px; background: #dc3545; color: white; border: none; cursor: pointer; font-size: 0.8rem;">
+                                Delete
+                              </button>
+                            </div>
+                          }
+                        </div>
+                      }
+                      else
+                      {
+                        <p style="font-size: 0.9rem; color: #666;">No images uploaded yet.</p>
+                      }
+                    </div>
+                  }
+                  else
+                  {
+                    <p>Loading details...</p>
+                    _ = LoadShowDetail(show.ShowId);
+                  }
+                }
+              </div>
+            }
+          </div>
+        }
+      }
+    </div>
+  </div>
+}
+
+@if (deletingShowId.HasValue)
+{
+  <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1001;">
+    <div style="background: white; padding: 20px; border-radius: 8px; max-width: 400px; width: 90%;">
+      <h3>Confirm Delete</h3>
+      <p>Are you sure you want to delete this show?</p>
+      <div style="display: flex; gap: 10px; margin-top: 20px;">
+        <button @onclick="ConfirmDelete" disabled="@isDeleting" style="padding: 10px 20px; background: #dc3545; color: white; border: none; cursor: pointer;">
+          @(isDeleting ? "Deleting..." : "Yes, Delete")
+        </button>
+        <button @onclick="CancelDelete" disabled="@isDeleting" style="padding: 10px 20px; background: #6c757d; color: white; border: none; cursor: pointer;">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+@code {
+  [Parameter] public bool IsOpen { get; set; }
+  [Parameter] public EventCallback OnClose { get; set; }
+
+  private List<ShowDto>? shows;
+  private List<ShowDetailDto> showDetails = new();
+  private List<ArtworkDto>? allArtworks;
+  private List<LocationDto>? allLocations;
+  private CreateShowDto newShow = new();
+  private UpdateShowDto editingShow = new();
+  private int? expandedShowId;
+  private int? editingShowId;
+  private int? deletingShowId;
+
+  private List<int> newShowArtworkIds = new();
+  private List<int> editingShowArtworkIds = new();
+
+  private bool isCreating = false;
+  private bool isEditing = false;
+  private bool isDeleting = false;
+  private string? createMessage;
+  private bool createSuccess = false;
+  private string? editMessage;
+  private bool editSuccess = false;
+
+  // Image upload state
+  private IBrowserFile? selectedShowImage;
+  private int? selectedShowImageForShowId;
+  private string? newImageAltText;
+  private string? newImageType;
+  private bool isUploadingImage = false;
+  private string? imageUploadMessage;
+  private bool imageUploadSuccess = false;
+
+  protected override async Task OnParametersSetAsync()
+  {
+    if (IsOpen && shows == null)
+    {
+      await LoadShows();
+      await LoadArtworks();
+      await LoadLocations();
+    }
+  }
+
+  private async Task LoadShows()
+  {
+    try
+    {
+      shows = await Http.GetFromJsonAsync<List<ShowDto>>("api/show");
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"Error loading shows: {ex.Message}");
+      shows = new List<ShowDto>();
+    }
+  }
+
+  private async Task LoadArtworks()
+  {
+    try
+    {
+      allArtworks = await Http.GetFromJsonAsync<List<ArtworkDto>>("api/artwork");
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"Error loading artworks: {ex.Message}");
+      allArtworks = new List<ArtworkDto>();
+    }
+  }
+
+  private async Task LoadLocations()
+  {
+    try
+    {
+      allLocations = await Http.GetFromJsonAsync<List<LocationDto>>("api/location");
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"Error loading locations: {ex.Message}");
+      allLocations = new List<LocationDto>();
+    }
+  }
+
+  private ShowDetailDto? GetShowDetail(int showId)
+  {
+    return showDetails?.FirstOrDefault(s => s.ShowId == showId);
+  }
+
+  private async Task LoadShowDetail(int showId)
+  {
+    try
+    {
+      var detail = await Http.GetFromJsonAsync<ShowDetailDto>($"api/show/{showId}");
+      if (detail != null)
+      {
+        var existing = showDetails.FirstOrDefault(s => s.ShowId == showId);
+        if (existing != null)
+        {
+          showDetails.Remove(existing);
+        }
+        showDetails.Add(detail);
+        StateHasChanged();
+      }
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"Error loading show detail: {ex.Message}");
+    }
+  }
+
+  private void ToggleAccordion(int showId)
+  {
+    if (expandedShowId == showId)
+      expandedShowId = null;
+    else
+      expandedShowId = showId;
+  }
+
+  private void HandleNewShowArtworkSelection(ChangeEventArgs e)
+  {
+    if (e.Value is string[] selectedValues)
+    {
+      newShowArtworkIds = selectedValues.Select(int.Parse).ToList();
+    }
+  }
+
+  private void HandleEditShowArtworkSelection(ChangeEventArgs e)
+  {
+    if (e.Value is string[] selectedValues)
+    {
+      editingShowArtworkIds = selectedValues.Select(int.Parse).ToList();
+    }
+  }
+
+  private async Task HandleCreateShow()
+  {
+    isCreating = true;
+    createMessage = null;
+
+    try
+    {
+      // Set artwork IDs
+      newShow.ArtworkIds = newShowArtworkIds.Any() ? newShowArtworkIds : null;
+
+      // Handle LocationId of 0 (set to null)
+      if (newShow.LocationId == 0)
+        newShow.LocationId = null;
+
+      var httpClient = await ApiService.GetAuthenticatedHttpClientAsync();
+      var response = await httpClient.PostAsJsonAsync("api/show", newShow);
+
+      if (response.IsSuccessStatusCode)
+      {
+        createMessage = "Show created successfully!";
+        createSuccess = true;
+        newShow = new CreateShowDto();
+        newShowArtworkIds = new();
+        await LoadShows();
+      }
+      else
+      {
+        var error = await response.Content.ReadAsStringAsync();
+        createMessage = $"Failed to create: {error}";
+        createSuccess = false;
+      }
+    }
+    catch (Exception ex)
+    {
+      createMessage = $"Error: {ex.Message}";
+      createSuccess = false;
+    }
+
+    isCreating = false;
+  }
+
+  private async Task StartEdit(int showId)
+  {
+    // Load detail if not already loaded
+    var detail = showDetails.FirstOrDefault(s => s.ShowId == showId);
+    if (detail == null)
+    {
+      await LoadShowDetail(showId);
+      detail = showDetails.FirstOrDefault(s => s.ShowId == showId);
+    }
+
+    if (detail != null)
+    {
+      editingShowId = showId;
+      editingShow = new UpdateShowDto
+      {
+        Title = detail.Title,
+        Dates = detail.Dates,
+        ShowInfo = detail.ShowInfo,
+        ShowType = detail.ShowType,
+        ArtistStatement = detail.ArtistStatement,
+        LocationId = detail.Location?.LocationId
+      };
+      editingShowArtworkIds = detail.Artworks?.Select(a => a.ArtWorkId).ToList() ?? new();
+      editMessage = null;
+      expandedShowId = showId;
+    }
+  }
+
+  private void CancelEdit()
+  {
+    editingShowId = null;
+    editingShow = new UpdateShowDto();
+    editingShowArtworkIds = new();
+    editMessage = null;
+  }
+
+  private async Task HandleUpdateShow()
+  {
+    if (!editingShowId.HasValue) return;
+
+    isEditing = true;
+    editMessage = null;
+
+    try
+    {
+      // Set artwork IDs
+      editingShow.ArtworkIds = editingShowArtworkIds.Any() ? editingShowArtworkIds : null;
+
+      // Handle LocationId of 0 (set to null)
+      if (editingShow.LocationId == 0)
+        editingShow.LocationId = null;
+
+      var httpClient = await ApiService.GetAuthenticatedHttpClientAsync();
+      var response = await httpClient.PutAsJsonAsync($"api/show/{editingShowId}", editingShow);
+
+      if (response.IsSuccessStatusCode)
+      {
+        editMessage = "Show updated successfully!";
+        editSuccess = true;
+        await LoadShows();
+
+        // Reload the detail
+        await LoadShowDetail(editingShowId.Value);
+
+        await Task.Delay(1000);
+        CancelEdit();
+      }
+      else
+      {
+        var error = await response.Content.ReadAsStringAsync();
+        editMessage = $"Failed to update: {error}";
+        editSuccess = false;
+      }
+    }
+    catch (Exception ex)
+    {
+      editMessage = $"Error: {ex.Message}";
+      editSuccess = false;
+    }
+
+    isEditing = false;
+  }
+
+  private void StartDelete(int showId)
+  {
+    deletingShowId = showId;
+  }
+
+  private void CancelDelete()
+  {
+    deletingShowId = null;
+  }
+
+  private async Task ConfirmDelete()
+  {
+    if (!deletingShowId.HasValue) return;
+
+    isDeleting = true;
+
+    try
+    {
+      var httpClient = await ApiService.GetAuthenticatedHttpClientAsync();
+      var response = await httpClient.DeleteAsync($"api/show/{deletingShowId}");
+
+      if (response.IsSuccessStatusCode)
+      {
+        await LoadShows();
+
+        // Remove from details cache
+        var detail = showDetails.FirstOrDefault(s => s.ShowId == deletingShowId);
+        if (detail != null)
+          showDetails.Remove(detail);
+
+        deletingShowId = null;
+        expandedShowId = null;
+      }
+      else
+      {
+        var error = await response.Content.ReadAsStringAsync();
+        Console.WriteLine($"Delete failed: {error}");
+      }
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"Delete exception: {ex.Message}");
+    }
+
+    isDeleting = false;
+  }
+
+  private void HandleShowImageSelected(InputFileChangeEventArgs e, int showId)
+  {
+    selectedShowImage = e.File;
+    selectedShowImageForShowId = showId;
+    imageUploadMessage = null;
+  }
+
+  private async Task HandleUploadShowImage()
+  {
+    if (selectedShowImage == null || !selectedShowImageForShowId.HasValue) return;
+
+    isUploadingImage = true;
+    imageUploadMessage = null;
+
+    try
+    {
+      var content = new MultipartFormDataContent();
+
+      var fileContent = new StreamContent(selectedShowImage.OpenReadStream(maxAllowedSize: 10485760)); // 10MB
+      fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(selectedShowImage.ContentType);
+      content.Add(fileContent, "image", selectedShowImage.Name);
+
+      if (!string.IsNullOrEmpty(newImageAltText))
+        content.Add(new StringContent(newImageAltText), "altText");
+
+      if (!string.IsNullOrEmpty(newImageType))
+        content.Add(new StringContent(newImageType), "imageType");
+
+      var httpClient = await ApiService.GetAuthenticatedHttpClientAsync();
+      var response = await httpClient.PostAsync($"api/show/{selectedShowImageForShowId}/images", content);
+
+      if (response.IsSuccessStatusCode)
+      {
+        imageUploadMessage = "Image uploaded successfully!";
+        imageUploadSuccess = true;
+
+        // Reload show detail to get new image
+        await LoadShowDetail(selectedShowImageForShowId.Value);
+
+        // Reset form
+        selectedShowImage = null;
+        selectedShowImageForShowId = null;
+        newImageAltText = null;
+        newImageType = null;
+      }
+      else
+      {
+        var error = await response.Content.ReadAsStringAsync();
+        imageUploadMessage = $"Upload failed: {error}";
+        imageUploadSuccess = false;
+      }
+    }
+    catch (Exception ex)
+    {
+      imageUploadMessage = $"Error: {ex.Message}";
+      imageUploadSuccess = false;
+    }
+
+    isUploadingImage = false;
+  }
+
+  private async Task DeleteShowImage(int showId, int imageId)
+  {
+    try
+    {
+      var httpClient = await ApiService.GetAuthenticatedHttpClientAsync();
+      var response = await httpClient.DeleteAsync($"api/show/{showId}/images/{imageId}");
+
+      if (response.IsSuccessStatusCode)
+      {
+        // Reload show detail to update images list
+        await LoadShowDetail(showId);
+      }
+      else
+      {
+        var error = await response.Content.ReadAsStringAsync();
+        Console.WriteLine($"Failed to delete image: {error}");
+      }
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"Error deleting image: {ex.Message}");
+    }
+  }
+
+  private async Task Close()
+  {
+    await OnClose.InvokeAsync();
+  }
+}

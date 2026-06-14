@@ -1,4 +1,10 @@
-bin
-obj
+bin/
+obj/
 
-appsettings.json
+# Appsettings files with secrets
+**/appsettings.json
+**/appsettings.Development.json
+**/appsettings.*.json
+
+# User secrets
+secrets.json

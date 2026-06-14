@@ -9,7 +9,7 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddScoped(sp => new HttpClient
 {
-    BaseAddress = new Uri("http://localhost:5023")
+    BaseAddress = new Uri("https://artsite-5uh2.onrender.com")
 });
 
 builder.Services.AddScoped<IAuthService, AuthService>();

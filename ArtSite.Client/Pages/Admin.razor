@@ -107,6 +107,102 @@
   <!-- Right Column: Side Panel -->
   <div style="position: sticky; top: 20px;">
 
+    <!-- Artist Info Section -->
+    <div style="margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h3 style="margin: 0;">Artist Info</h3>
+        <button @onclick="ToggleArtistInfoEdit" style="background: #6f42c1; color: white; border: none; padding: 5px 10px; cursor: pointer; font-size: 0.85rem;">
+          @(isEditingArtistInfo ? "Cancel" : "Edit")
+        </button>
+      </div>
+      <div style="border: 1px solid #ddd; background: #f9f9f9; padding: 10px; max-height: 350px; overflow-y: auto;">
+        @if (isEditingArtistInfo)
+        {
+          <EditForm Model="@artistInfoUpdate" OnValidSubmit="@HandleUpdateArtistInfo">
+            <div style="margin-bottom: 10px;">
+              <label style="font-size: 0.85rem; font-weight: 500;">CV:</label>
+              <InputTextArea @bind-Value="artistInfoUpdate.CV" style="width: 100%; padding: 5px; min-height: 60px; font-size: 0.85rem;" />
+            </div>
+            <div style="margin-bottom: 10px;">
+              <label style="font-size: 0.85rem; font-weight: 500;">Bio:</label>
+              <InputTextArea @bind-Value="artistInfoUpdate.Bio" style="width: 100%; padding: 5px; min-height: 60px; font-size: 0.85rem;" />
+            </div>
+            <div style="margin-bottom: 10px;">
+              <label style="font-size: 0.85rem; font-weight: 500;">Artist Statement:</label>
+              <InputTextArea @bind-Value="artistInfoUpdate.ArtistStatement" style="width: 100%; padding: 5px; min-height: 60px; font-size: 0.85rem;" />
+            </div>
+            <div style="margin-bottom: 10px;">
+              <label style="font-size: 0.85rem; font-weight: 500;">Change Description:</label>
+              <InputText @bind-Value="artistInfoUpdate.ChangeDescription" style="width: 100%; padding: 5px; font-size: 0.85rem;" placeholder="Brief description of changes" />
+            </div>
+
+            @if (!string.IsNullOrEmpty(artistInfoMessage))
+            {
+              <div style="color: @(artistInfoSuccess ? "green" : "red"); margin: 5px 0; font-size: 0.85rem;">
+                @artistInfoMessage
+              </div>
+            }
+
+            <button type="submit" disabled="@isSavingArtistInfo" style="padding: 5px 10px; cursor: pointer; font-size: 0.85rem;">
+              @(isSavingArtistInfo ? "Saving..." : "Save")
+            </button>
+          </EditForm>
+        }
+        else
+        {
+          @if (currentArtistInfo == null)
+          {
+            <p style="margin: 0; color: #666; font-size: 0.9rem;">No artist info yet. Click Edit to add.</p>
+          }
+          else
+          {
+            <div style="background: white; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px;">
+              <div style="font-size: 0.75rem; color: #999; margin-bottom: 5px;">Last updated: @currentArtistInfo.UpdatedAt.ToLocalTime().ToString("MMM dd, yyyy h:mm tt")</div>
+              @if (!string.IsNullOrEmpty(currentArtistInfo.CV))
+              {
+                <div style="margin-bottom: 8px;">
+                  <strong style="font-size: 0.85rem;">CV:</strong>
+                  <div style="font-size: 0.8rem; color: #666; white-space: pre-wrap;">@(currentArtistInfo.CV.Length > 100 ? currentArtistInfo.CV.Substring(0, 100) + "..." : currentArtistInfo.CV)</div>
+                </div>
+              }
+              @if (!string.IsNullOrEmpty(currentArtistInfo.Bio))
+              {
+                <div style="margin-bottom: 8px;">
+                  <strong style="font-size: 0.85rem;">Bio:</strong>
+                  <div style="font-size: 0.8rem; color: #666; white-space: pre-wrap;">@(currentArtistInfo.Bio.Length > 100 ? currentArtistInfo.Bio.Substring(0, 100) + "..." : currentArtistInfo.Bio)</div>
+                </div>
+              }
+              @if (!string.IsNullOrEmpty(currentArtistInfo.ArtistStatement))
+              {
+                <div style="margin-bottom: 8px;">
+                  <strong style="font-size: 0.85rem;">Statement:</strong>
+                  <div style="font-size: 0.8rem; color: #666; white-space: pre-wrap;">@(currentArtistInfo.ArtistStatement.Length > 100 ? currentArtistInfo.ArtistStatement.Substring(0, 100) + "..." : currentArtistInfo.ArtistStatement)</div>
+                </div>
+              }
+            </div>
+            <button @onclick="ToggleVersionHistory" style="width: 100%; padding: 5px; background: #6c757d; color: white; border: none; cursor: pointer; font-size: 0.8rem;">
+              @(showVersionHistory ? "Hide" : "Show") Version History (@versionHistory.Count)
+            </button>
+            @if (showVersionHistory && versionHistory.Any())
+            {
+              <div style="margin-top: 10px; max-height: 200px; overflow-y: auto;">
+                @foreach (var version in versionHistory)
+                {
+                  <div style="background: white; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 5px;">
+                    <div style="font-size: 0.75rem; font-weight: 500;">@version.ChangeDescription</div>
+                    <div style="font-size: 0.7rem; color: #999;">@version.VersionCreatedAt.ToLocalTime().ToString("MMM dd, yyyy h:mm tt")</div>
+                    <button @onclick="@(() => RestoreVersion(version.ArtistInfoVersionId))" style="margin-top: 5px; padding: 3px 8px; background: #ffc107; color: black; border: none; cursor: pointer; font-size: 0.7rem;">
+                      Restore
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+          }
+        }
+      </div>
+    </div>
+
     <!-- Locations List -->
     <div style="margin-bottom: 20px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -344,6 +440,16 @@ else
   private int? newlyCreatedArtworkId;
   private IBrowserFile? selectedFile;
 
+  // Artist Info
+  private ArtistInfoDto? currentArtistInfo;
+  private UpdateArtistInfoDto artistInfoUpdate = new();
+  private List<ArtistInfoVersionDto> versionHistory = new();
+  private bool isEditingArtistInfo = false;
+  private bool isSavingArtistInfo = false;
+  private bool showVersionHistory = false;
+  private string? artistInfoMessage;
+  private bool artistInfoSuccess = false;
+
   // For existing artwork uploads
   private IBrowserFile? selectedFileForArtwork;
   private int? uploadingArtworkId;
@@ -383,6 +489,7 @@ else
         await LoadArtworks();
         await LoadLocations();
         await LoadShows();
+        await LoadArtistInfo();
         StateHasChanged();
       }
     }
@@ -709,5 +816,119 @@ else
   {
     await AuthService.LogoutAsync();
     Navigation.NavigateTo("/login");
+  }
+
+  // Artist Info methods
+  private async Task LoadArtistInfo()
+  {
+    try
+    {
+      currentArtistInfo = await Http.GetFromJsonAsync<ArtistInfoDto>("api/artistinfo");
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"Error loading artist info: {ex.Message}");
+      currentArtistInfo = null;
+    }
+  }
+
+  private async Task LoadVersionHistory()
+  {
+    try
+    {
+      versionHistory = await Http.GetFromJsonAsync<List<ArtistInfoVersionDto>>("api/artistinfo/versions") ?? new();
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"Error loading version history: {ex.Message}");
+      versionHistory = new();
+    }
+  }
+
+  private void ToggleArtistInfoEdit()
+  {
+    if (isEditingArtistInfo)
+    {
+      isEditingArtistInfo = false;
+      artistInfoMessage = null;
+    }
+    else
+    {
+      isEditingArtistInfo = true;
+      artistInfoUpdate = new UpdateArtistInfoDto
+      {
+        CV = currentArtistInfo?.CV,
+        Bio = currentArtistInfo?.Bio,
+        ArtistStatement = currentArtistInfo?.ArtistStatement
+      };
+    }
+  }
+
+  private async Task HandleUpdateArtistInfo()
+  {
+    isSavingArtistInfo = true;
+    artistInfoMessage = null;
+
+    try
+    {
+      var httpClient = await ApiService.GetAuthenticatedHttpClientAsync();
+      var response = await httpClient.PutAsJsonAsync("api/artistinfo", artistInfoUpdate);
+
+      if (response.IsSuccessStatusCode)
+      {
+        artistInfoMessage = "Artist info saved successfully!";
+        artistInfoSuccess = true;
+        await LoadArtistInfo();
+        await LoadVersionHistory();
+        await Task.Delay(1000);
+        isEditingArtistInfo = false;
+      }
+      else
+      {
+        var error = await response.Content.ReadAsStringAsync();
+        artistInfoMessage = $"Failed to save: {error}";
+        artistInfoSuccess = false;
+      }
+    }
+    catch (Exception ex)
+    {
+      artistInfoMessage = $"Error: {ex.Message}";
+      artistInfoSuccess = false;
+    }
+
+    isSavingArtistInfo = false;
+  }
+
+  private async Task ToggleVersionHistory()
+  {
+    showVersionHistory = !showVersionHistory;
+    if (showVersionHistory && versionHistory.Count == 0)
+    {
+      await LoadVersionHistory();
+    }
+  }
+
+  private async Task RestoreVersion(int versionId)
+  {
+    try
+    {
+      var httpClient = await ApiService.GetAuthenticatedHttpClientAsync();
+      var response = await httpClient.PostAsync($"api/artistinfo/restore/{versionId}", null);
+
+      if (response.IsSuccessStatusCode)
+      {
+        await LoadArtistInfo();
+        await LoadVersionHistory();
+        showVersionHistory = false;
+      }
+      else
+      {
+        Console.WriteLine("Failed to restore version");
+      }
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"Error restoring version: {ex.Message}");
+    }
   }
 }

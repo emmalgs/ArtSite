@@ -14,6 +14,8 @@ namespace ArtSite.Api.Data
     public DbSet<Show> Shows { get; set; }
     public DbSet<ShowArtwork> ShowArtworks { get; set; }
     public DbSet<ShowImage> ShowImages { get; set; }
+    public DbSet<ArtistInfo> ArtistInfos { get; set; }
+    public DbSet<ArtistInfoVersion> ArtistInfoVersions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -164,6 +166,36 @@ namespace ArtSite.Api.Data
 
         entity.Property(si => si.ImageType)
           .HasMaxLength(100);
+      });
+
+      // Configure ArtistInfo entity
+      modelBuilder.Entity<ArtistInfo>(entity =>
+      {
+        entity.HasKey(ai => ai.ArtistInfoId);
+
+        entity.Property(ai => ai.CreatedAt)
+          .IsRequired();
+
+        entity.Property(ai => ai.UpdatedAt)
+          .IsRequired();
+
+        // Configure relationship with ArtistInfoVersions
+        entity.HasMany(ai => ai.Versions)
+          .WithOne(aiv => aiv.ArtistInfo)
+          .HasForeignKey(aiv => aiv.ArtistInfoId)
+          .OnDelete(DeleteBehavior.Cascade);
+      });
+
+      // Configure ArtistInfoVersion entity
+      modelBuilder.Entity<ArtistInfoVersion>(entity =>
+      {
+        entity.HasKey(aiv => aiv.ArtistInfoVersionId);
+
+        entity.Property(aiv => aiv.VersionCreatedAt)
+          .IsRequired();
+
+        entity.Property(aiv => aiv.ChangeDescription)
+          .HasMaxLength(500);
       });
     }
   }

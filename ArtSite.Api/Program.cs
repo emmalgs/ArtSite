@@ -97,6 +97,15 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+// Log wwwroot contents for debugging
+var wwwrootPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+app.Logger.LogInformation($"ContentRootPath: {app.Environment.ContentRootPath}");
+app.Logger.LogInformation($"wwwroot exists: {Directory.Exists(wwwrootPath)}");
+if (Directory.Exists(wwwrootPath))
+{
+    app.Logger.LogInformation($"wwwroot contents: {string.Join(", ", Directory.GetFileSystemEntries(wwwrootPath))}");
+}
+
 // Only use HTTPS redirection in development
 // Render handles HTTPS at the load balancer level
 if (app.Environment.IsDevelopment())
@@ -106,18 +115,18 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowBlazorClient");
 
-// Serve Blazor WebAssembly files
-app.UseBlazorFrameworkFiles();
-app.UseStaticFiles();
-
 app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Serve Blazor WebAssembly files
+app.UseBlazorFrameworkFiles();
+app.UseStaticFiles();
+
 app.MapControllers();
 
-// Fallback to index.html for client-side routing
+// Fallback to index.html for client-side routing (but not for API routes)
 app.MapFallbackToFile("index.html");
 
 app.Run();

@@ -134,21 +134,29 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowBlazorClient");
 
-// Middleware to fix index.html fingerprint placeholder
+// Middleware to fix fingerprinted framework files
 app.Use(async (context, next) =>
 {
     await next();
 
-    if (context.Response.StatusCode == 404 && context.Request.Path.Value?.Contains("_framework/blazor.webassembly") == true)
+    if (context.Response.StatusCode == 404 && context.Request.Path.Value?.StartsWith("/_framework/") == true)
     {
-        // Find the actual blazor.webassembly file
+        var requestedFile = Path.GetFileName(context.Request.Path.Value);
+
+        // Extract the base filename (e.g., "blazor.webassembly.js" or "dotnet.js")
         var frameworkPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot", "_framework");
-        var blazorFile = Directory.GetFiles(frameworkPath, "blazor.webassembly.*.js")
+
+        // Try to find a fingerprinted version of the file
+        // Pattern: filename.{fingerprint}.extension
+        var extension = Path.GetExtension(requestedFile); // e.g., ".js"
+        var baseName = Path.GetFileNameWithoutExtension(requestedFile); // e.g., "dotnet"
+
+        var actualFile = Directory.GetFiles(frameworkPath, $"{baseName}.*{extension}")
             .FirstOrDefault(f => !f.EndsWith(".gz") && !f.EndsWith(".br"));
 
-        if (blazorFile != null)
+        if (actualFile != null)
         {
-            var actualFileName = Path.GetFileName(blazorFile);
+            var actualFileName = Path.GetFileName(actualFile);
             context.Response.Redirect($"/_framework/{actualFileName}");
         }
     }

@@ -23,6 +23,7 @@ public class ArtworkService : IArtworkService
         ArtWorkId = a.ArtWorkId,
         Title = a.Title,
         Medium = a.Medium,
+        Category = a.Category,
         Year = a.Year,
         Price = a.Price,
         Available = a.Available,

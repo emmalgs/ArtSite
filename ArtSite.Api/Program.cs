@@ -111,9 +111,16 @@ if (Directory.Exists(wwwrootPath))
     {
         var frameworkFiles = Directory.GetFiles(frameworkPath);
         app.Logger.LogInformation($"_framework directory has {frameworkFiles.Length} files");
-        foreach (var file in frameworkFiles.Take(20))
+
+        // Find the blazor bootloader file
+        var blazorFile = frameworkFiles.FirstOrDefault(f => Path.GetFileName(f).StartsWith("blazor.webassembly") && f.EndsWith(".js") && !f.EndsWith(".gz") && !f.EndsWith(".br"));
+        if (blazorFile != null)
         {
-            app.Logger.LogInformation($"  - {Path.GetFileName(file)}");
+            app.Logger.LogInformation($"Found Blazor bootloader: {Path.GetFileName(blazorFile)}");
+        }
+        else
+        {
+            app.Logger.LogWarning("No Blazor bootloader file found!");
         }
     }
 }
@@ -126,6 +133,26 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("AllowBlazorClient");
+
+// Middleware to fix index.html fingerprint placeholder
+app.Use(async (context, next) =>
+{
+    await next();
+
+    if (context.Response.StatusCode == 404 && context.Request.Path.Value?.Contains("_framework/blazor.webassembly") == true)
+    {
+        // Find the actual blazor.webassembly file
+        var frameworkPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot", "_framework");
+        var blazorFile = Directory.GetFiles(frameworkPath, "blazor.webassembly.*.js")
+            .FirstOrDefault(f => !f.EndsWith(".gz") && !f.EndsWith(".br"));
+
+        if (blazorFile != null)
+        {
+            var actualFileName = Path.GetFileName(blazorFile);
+            context.Response.Redirect($"/_framework/{actualFileName}");
+        }
+    }
+});
 
 app.UseRouting();
 

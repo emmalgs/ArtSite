@@ -67,6 +67,7 @@ public class ShowService : IShowService
         ArtWorkId = sa.ArtWork.ArtWorkId,
         Title = sa.ArtWork.Title,
         Medium = sa.ArtWork.Medium,
+        Category = sa.ArtWork.Category,
         Year = sa.ArtWork.Year,
         Price = sa.ArtWork.Price,
         Available = sa.ArtWork.Available,

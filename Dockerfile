@@ -1,6 +1,11 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
+# Install Python (required for Emscripten/WASM compilation)
+RUN apt-get update && apt-get install -y python3 && \
+    ln -s /usr/bin/python3 /usr/bin/python && \
+    rm -rf /var/lib/apt/lists/*
+
 # Install wasm-tools workload for Blazor WebAssembly
 RUN dotnet workload install wasm-tools --skip-manifest-update
 

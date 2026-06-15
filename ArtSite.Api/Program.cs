@@ -3,6 +3,7 @@ using ArtSite.Api.Configuration;
 using ArtSite.Api.Data;
 using ArtSite.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Supabase;
@@ -122,7 +123,27 @@ app.UseAuthorization();
 
 // Serve Blazor WebAssembly files
 app.UseBlazorFrameworkFiles();
-app.UseStaticFiles();
+
+// Configure static file options to handle extensionless files
+var provider = new FileExtensionContentTypeProvider();
+provider.Mappings[".webassembly"] = "application/wasm";
+provider.Mappings[".js"] = "application/javascript";
+provider.Mappings[".dat"] = "application/octet-stream";
+provider.Mappings[".dll"] = "application/octet-stream";
+provider.Mappings[".wasm"] = "application/wasm";
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    ContentTypeProvider = provider,
+    OnPrepareResponse = ctx =>
+    {
+        // Handle files without extensions (like blazor.webassembly)
+        if (string.IsNullOrEmpty(Path.GetExtension(ctx.File.Name)))
+        {
+            ctx.Context.Response.Headers.ContentType = "application/javascript";
+        }
+    }
+});
 
 app.MapControllers();
 

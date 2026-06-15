@@ -105,6 +105,17 @@ app.Logger.LogInformation($"wwwroot exists: {Directory.Exists(wwwrootPath)}");
 if (Directory.Exists(wwwrootPath))
 {
     app.Logger.LogInformation($"wwwroot contents: {string.Join(", ", Directory.GetFileSystemEntries(wwwrootPath))}");
+
+    var frameworkPath = Path.Combine(wwwrootPath, "_framework");
+    if (Directory.Exists(frameworkPath))
+    {
+        var frameworkFiles = Directory.GetFiles(frameworkPath);
+        app.Logger.LogInformation($"_framework directory has {frameworkFiles.Length} files");
+        foreach (var file in frameworkFiles.Take(20))
+        {
+            app.Logger.LogInformation($"  - {Path.GetFileName(file)}");
+        }
+    }
 }
 
 // Only use HTTPS redirection in development

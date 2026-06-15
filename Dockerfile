@@ -22,7 +22,7 @@ RUN dotnet publish "ArtSite.Api.csproj" -c Release -o /app/publish /p:UseAppHost
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
-COPY --from=publish /app/publish .
+COPY --from=build /app/publish .
 
 # Railway uses PORT environment variable
 ENV ASPNETCORE_URLS=http://+:$PORT

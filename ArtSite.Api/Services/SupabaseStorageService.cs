@@ -6,12 +6,12 @@ namespace ArtSite.Api.Services;
 
 public class SupabaseStorageService : IStorageService
 {
-  private readonly Client _supabaseClient;
+  private readonly Supabase.Client _supabaseClient;
   private readonly string _bucketName;
   private readonly string _supabaseUrl;
   private const int MaxDimension = 2000;
 
-  public SupabaseStorageService(Client supabaseClient, IOptions<Configuration.SupabaseOptions> options)
+  public SupabaseStorageService(Supabase.Client supabaseClient, IOptions<Configuration.SupabaseOptions> options)
   {
     _supabaseClient = supabaseClient;
     _bucketName = options.Value.StorageBucket;

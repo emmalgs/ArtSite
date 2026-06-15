@@ -46,7 +46,7 @@ var supabaseUrl = builder.Configuration["Supabase:Url"]
 var supabaseKey = builder.Configuration["Supabase:Key"]
     ?? throw new InvalidOperationException("Supabase:Key configuration is missing");
 
-builder.Services.AddSingleton(provider =>
+builder.Services.AddSingleton<Supabase.Client>(provider =>
 {
     var options = new SupabaseOptions
     {
@@ -54,7 +54,7 @@ builder.Services.AddSingleton(provider =>
         AutoConnectRealtime = false,
     };
 
-    return new Client(supabaseUrl, supabaseKey, options);
+    return new Supabase.Client(supabaseUrl, supabaseKey, options);
 });
 
 // Jwt token

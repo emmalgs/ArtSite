@@ -112,7 +112,7 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapRazorComponents<App>()
+app.MapRazorComponents<ArtSite.Client.App>()
     .AddInteractiveWebAssemblyRenderMode()
     .AddInteractiveServerRenderMode();
 

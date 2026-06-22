@@ -47,7 +47,7 @@ var supabaseUrl = builder.Configuration["Supabase:Url"]
 var supabaseKey = builder.Configuration["Supabase:Key"]
     ?? throw new InvalidOperationException("Supabase:Key configuration is missing");
 
-builder.Services.AddSingleton<Supabase.Client>(provider =>
+builder.Services.AddSingleton(provider =>
 {
     var options = new SupabaseOptions
     {
@@ -55,7 +55,7 @@ builder.Services.AddSingleton<Supabase.Client>(provider =>
         AutoConnectRealtime = false,
     };
 
-    return new Supabase.Client(supabaseUrl, supabaseKey, options);
+    return new Client(supabaseUrl, supabaseKey, options);
 });
 
 // Jwt token
@@ -98,35 +98,6 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-// Log wwwroot contents for debugging
-var wwwrootPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
-app.Logger.LogInformation($"ContentRootPath: {app.Environment.ContentRootPath}");
-app.Logger.LogInformation($"wwwroot exists: {Directory.Exists(wwwrootPath)}");
-if (Directory.Exists(wwwrootPath))
-{
-    app.Logger.LogInformation($"wwwroot contents: {string.Join(", ", Directory.GetFileSystemEntries(wwwrootPath))}");
-
-    var frameworkPath = Path.Combine(wwwrootPath, "_framework");
-    if (Directory.Exists(frameworkPath))
-    {
-        var frameworkFiles = Directory.GetFiles(frameworkPath);
-        app.Logger.LogInformation($"_framework directory has {frameworkFiles.Length} files");
-
-        // Find the blazor bootloader file
-        var blazorFile = frameworkFiles.FirstOrDefault(f => Path.GetFileName(f).StartsWith("blazor.webassembly") && f.EndsWith(".js") && !f.EndsWith(".gz") && !f.EndsWith(".br"));
-        if (blazorFile != null)
-        {
-            app.Logger.LogInformation($"Found Blazor bootloader: {Path.GetFileName(blazorFile)}");
-        }
-        else
-        {
-            app.Logger.LogWarning("No Blazor bootloader file found!");
-        }
-    }
-}
-
-// Only use HTTPS redirection in development
-// Render handles HTTPS at the load balancer level
 if (app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
@@ -134,41 +105,19 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowBlazorClient");
 
-// Middleware to fix fingerprinted framework files
-app.Use(async (context, next) =>
-{
-    await next();
-
-    if (context.Response.StatusCode == 404 && context.Request.Path.Value?.StartsWith("/_framework/") == true)
-    {
-        var requestedFile = Path.GetFileName(context.Request.Path.Value);
-
-        // Extract the base filename (e.g., "blazor.webassembly.js" or "dotnet.js")
-        var frameworkPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot", "_framework");
-
-        // Try to find a fingerprinted version of the file
-        // Pattern: filename.{fingerprint}.extension
-        var extension = Path.GetExtension(requestedFile); // e.g., ".js"
-        var baseName = Path.GetFileNameWithoutExtension(requestedFile); // e.g., "dotnet"
-
-        var actualFile = Directory.GetFiles(frameworkPath, $"{baseName}.*{extension}")
-            .FirstOrDefault(f => !f.EndsWith(".gz") && !f.EndsWith(".br"));
-
-        if (actualFile != null)
-        {
-            var actualFileName = Path.GetFileName(actualFile);
-            context.Response.Redirect($"/_framework/{actualFileName}");
-        }
-    }
-});
+app.MapStaticAssets(); 
 
 app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Serve Blazor WebAssembly files
-app.UseBlazorFrameworkFiles();
+app.MapRazorComponents<App>()
+    .AddInteractiveWebAssemblyRenderMode()
+    .AddInteractiveServerRenderMode();
+
+// Ensure the fallback route is at the very end
+app.MapFallbackToFile("index.html"); 
 
 // Configure static file options to handle extensionless files
 var provider = new FileExtensionContentTypeProvider();

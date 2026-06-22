@@ -98,6 +98,8 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+// Only use HTTPS redirection in development
+// Render handles HTTPS at the load balancer level
 if (app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
@@ -105,44 +107,50 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowBlazorClient");
 
-app.MapStaticAssets(); 
-
-app.UseRouting();
-
-app.UseAuthentication();
-app.UseAuthorization();
-
-app.MapRazorComponents<ArtSite.Client.App>()
-    .AddInteractiveWebAssemblyRenderMode()
-    .AddInteractiveServerRenderMode();
-
-// Ensure the fallback route is at the very end
-app.MapFallbackToFile("index.html"); 
-
-// Configure static file options to handle extensionless files
+// Configure static file content type provider BEFORE using static files
 var provider = new FileExtensionContentTypeProvider();
 provider.Mappings[".webassembly"] = "application/wasm";
 provider.Mappings[".js"] = "application/javascript";
 provider.Mappings[".dat"] = "application/octet-stream";
 provider.Mappings[".dll"] = "application/octet-stream";
 provider.Mappings[".wasm"] = "application/wasm";
+provider.Mappings[".json"] = "application/json";
+provider.Mappings[".br"] = "application/octet-stream";
+provider.Mappings[".gz"] = "application/octet-stream";
 
+// Serve Blazor WebAssembly framework files from _framework directory
+app.UseBlazorFrameworkFiles();
+
+// Serve static files (CSS, JS, images, etc.) with proper MIME types
 app.UseStaticFiles(new StaticFileOptions
 {
     ContentTypeProvider = provider,
     OnPrepareResponse = ctx =>
     {
-        // Handle files without extensions (like blazor.webassembly)
+        // Handle files without extensions
         if (string.IsNullOrEmpty(Path.GetExtension(ctx.File.Name)))
         {
             ctx.Context.Response.Headers.ContentType = "application/javascript";
         }
+
+        // Add caching headers for framework files
+        if (ctx.Context.Request.Path.StartsWithSegments("/_framework"))
+        {
+            ctx.Context.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+        }
     }
 });
 
+app.UseRouting();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+// Map API controllers - these will be matched before the fallback
 app.MapControllers();
 
-// Fallback to index.html for client-side routing (but not for API routes)
+// Fallback to index.html for client-side routing (SPA)
+// This MUST be last so API routes take precedence
 app.MapFallbackToFile("index.html");
 
 app.Run();
